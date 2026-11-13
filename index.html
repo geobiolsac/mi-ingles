@@ -764,7 +764,7 @@ function dictTabs(c){return `<div class="seg" style="margin-bottom:12px"><button
 const _dictV=dictV;
 dictV=function(c){if(c.tab!=='es')return dictTabs(c)+_dictV(c);c.title='Diccionario de español';
   if(!ESD){loadESD().then(()=>{if(cur()===c)render();}).catch(()=>{const el=$('#esres');if(el)el.innerHTML='<p class="sub">⚠️ No pude cargar el diccionario. Ábrelo una vez con internet desde la app instalada (geobiolsac.github.io/mi-ingles) y luego funcionará sin conexión.</p>';});
-    return dictTabs(c)+`<h2>📗 Diccionario de español</h2><div id="esres"><p class="sub">Cargando 20 000 palabras…</p></div>`;}
+    return dictTabs(c)+`<h2>📗 Diccionario de español</h2><div id="esres"><p class="sub">Cargando el diccionario (la primera vez tarda unos segundos)…</p></div>`;}
   return dictTabs(c)+`<h2>📗 Diccionario de español</h2><p class="sub">${ESD.length.toLocaleString('es-PE')} palabras de uso actual, con sinónimos, antónimos y su traducción al inglés.</p>
    <input id="qes" class="search" type="search" placeholder="Escribe una palabra en español…" autocomplete="off" autocapitalize="off" spellcheck="false">
    <div class="row" style="margin:12px 0"><button class="btn alt small" data-a="esrand">🎲 Palabra al azar</button></div>
