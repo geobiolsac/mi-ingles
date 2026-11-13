@@ -754,7 +754,7 @@ var act3=null;
 
 /* ================= DICCIONARIO DE ESPAÑOL ================= */
 var ESD=null,ESI=null,ESLOAD=null;
-function loadESD(){if(ESD)return Promise.resolve(ESD);if(ESLOAD)return ESLOAD;
+function loadESD(){if(!ESD&&typeof ESDATA!=='undefined'){ESD=ESDATA;ESI={};ESD.forEach((e,i)=>ESI[e[0]]=i);}if(ESD)return Promise.resolve(ESD);if(ESLOAD)return ESLOAD;
   ESLOAD=fetch('esdict.json').then(r=>{if(!r.ok)throw 0;return r.json();}).then(d=>{ESD=d;ESI={};d.forEach((e,i)=>ESI[e[0]]=i);return d;})
     .catch(()=>{ESLOAD=null;throw 0;});return ESLOAD;}
 const ENW={};W.forEach(w=>{ENW[w.en.toLowerCase()]=ENW[w.en.toLowerCase()]||w;});
