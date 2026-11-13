@@ -806,6 +806,29 @@ act3=function(a,d,el){const c=cur();
 const _render=render;
 render=function(){_render();const c=cur();if(c.s==='dict'&&c.tab==='es'&&ESD){const i=$('#qes');if(i){i.value=c.qes&&!c.qes.startsWith('^')?c.qes:'';
   i.oninput=()=>{c.qes=i.value;c.eslim=50;$('#esres').innerHTML=esResults(c);};}}};
+/* ================= SUGERENCIAS AL ESCRIBIR ================= */
+(function(){const st=document.createElement('style');st.textContent=`.sugwrap{position:relative}
+.sugbox{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border-radius:16px;box-shadow:0 8px 24px #0b164033;z-index:8;max-height:55vh;overflow:auto;display:none}
+.sugbox.on{display:block}.sugi{display:flex;gap:12px;align-items:center;padding:10px 14px;width:100%;text-align:left;border-bottom:1px solid #eef1f8}
+.sugi:last-child{border-bottom:0}.sugi .h{font-weight:800;font-size:1.15rem}.sugi .s{color:var(--gris);font-size:.92rem}.sugi mark{background:#fff3c4;border-radius:4px;padding:0 1px}`;document.head.appendChild(st);})();
+function hl(txt,q){const t=String(txt),i=deacc(t).indexOf(deacc(q));if(!q||i<0)return esc(t);return esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length));}
+function sugItems(q,kind){q=q.trim();if(!q||q.startsWith('^'))return [];const out=[];
+  if(kind!=='es'){dictSearch(q).slice(0,kind==='all'?5:8).forEach(w=>out.push(`<button class="sugi" data-a="sugen" data-i="${w.i}">${pic(w,'md')}<div><div class="h">${hl(w.en,q)} <span style="color:var(--naranja);font-size:.95rem">${esc(w.fig)}</span></div><div class="s">🇵🇪 ${hl(w.es,q)}</div></div></button>`));}
+  if(kind!=='en'&&ESD){esSearch(q).slice(0,kind==='all'?5:8).forEach(e=>out.push(`<button class="sugi" data-a="escard" data-w="${esc(e[0])}"><div style="font-size:1.6rem">📗</div><div><div class="h">${hl(e[0],q)} <span class="badge">${esc(e[1][0][0])}</span></div><div class="s">${esc(e[1][0][1].slice(0,90))}${e[1][0][1].length>90?'…':''}</div></div></button>`));}
+  return out;}
+function attachSuggest(inp,kind){if(!inp||inp._sug)return;inp._sug=1;
+  const wrap=document.createElement('div');wrap.className='sugwrap';inp.parentNode.insertBefore(wrap,inp);wrap.appendChild(inp);
+  const box=document.createElement('div');box.className='sugbox';wrap.appendChild(box);
+  const upd=()=>{const it=sugItems(inp.value,kind);box.innerHTML=it.join('')||(inp.value.trim()?'<div class="sugi ds">Sin coincidencias</div>':'');box.classList.toggle('on',!!inp.value.trim()&&document.activeElement===inp);};
+  inp.addEventListener('input',upd);inp.addEventListener('focus',()=>{if(kind!=='en')loadESD().then(upd).catch(()=>{});upd();});
+  inp.addEventListener('blur',()=>setTimeout(()=>box.classList.remove('on'),250));
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){box.classList.remove('on');inp.blur();if(kind==='all'){const q=inp.value.trim();if(q){go('dict',{q,tab:(dictSearch(q).length?'en':'es'),qes:q});}}}});}
+const _act3=act3;
+act3=function(a,d,el){if(a==='sugen'){const w=W[+d.i];if(w)openCard([w],0);return;}return _act3(a,d,el);};
+const _render2=render;
+render=function(){_render2();attachSuggest($('#q'),'en');attachSuggest($('#qes'),'es');attachSuggest($('#qhome'),'all');};
+const _homeV=homeV;
+homeV=function(){return `<input id="qhome" class="search" type="search" placeholder="🔎 Busca una palabra en inglés o en español…" autocomplete="off" autocapitalize="off" spellcheck="false" style="margin-bottom:14px">`+_homeV();};
 
 /* ================= acciones ================= */
 function act(a,d,el){const c=cur();
