@@ -752,6 +752,61 @@ document.addEventListener('change',e=>{if(e.target.id!=='impf')return;const f=e.
   rd.onload=()=>{try{const o=JSON.parse(rd.result);if(o.app!=='mi-ingles'||!o.P)throw 0;P=Object.assign(defP(),o.P);CFG=Object.assign(CFG,o.CFG||{});save();applyFont();toast('✅ Progreso importado.');render();}catch(x){toast('Ese archivo no es un respaldo válido.');}};rd.readAsText(f);});
 var act3=null;
 
+/* ================= DICCIONARIO DE ESPAÑOL ================= */
+var ESD=null,ESI=null,ESLOAD=null;
+function loadESD(){if(ESD)return Promise.resolve(ESD);if(ESLOAD)return ESLOAD;
+  ESLOAD=fetch('esdict.json').then(r=>{if(!r.ok)throw 0;return r.json();}).then(d=>{ESD=d;ESI={};d.forEach((e,i)=>ESI[e[0]]=i);return d;})
+    .catch(()=>{ESLOAD=null;throw 0;});return ESLOAD;}
+const ENW={};W.forEach(w=>{ENW[w.en.toLowerCase()]=ENW[w.en.toLowerCase()]||w;});
+function speakEs(t){if(!('speechSynthesis' in window))return;stopKaraoke();speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);
+  const v=VOICES.find(v=>/^es[-_](PE|419|US|MX)/i.test(v.lang))||VOICES.find(v=>/^es/i.test(v.lang));if(v)u.voice=v;u.lang=v?v.lang.replace('_','-'):'es-US';u.rate=.9;speechSynthesis.speak(u);}
+function dictTabs(c){return `<div class="seg" style="margin-bottom:12px"><button class="${c.tab!=='es'?'on':''}" data-a="dtab" data-v="en">🇬🇧↔🇵🇪 Inglés · Español</button><button class="${c.tab==='es'?'on':''}" data-a="dtab" data-v="es">📗 Diccionario de español</button></div>`;}
+const _dictV=dictV;
+dictV=function(c){if(c.tab!=='es')return dictTabs(c)+_dictV(c);c.title='Diccionario de español';
+  if(!ESD){loadESD().then(()=>{if(cur()===c)render();}).catch(()=>{const el=$('#esres');if(el)el.innerHTML='<p class="sub">⚠️ No pude cargar el diccionario. Ábrelo una vez con internet desde la app instalada (geobiolsac.github.io/mi-ingles) y luego funcionará sin conexión.</p>';});
+    return dictTabs(c)+`<h2>📗 Diccionario de español</h2><div id="esres"><p class="sub">Cargando 20 000 palabras…</p></div>`;}
+  return dictTabs(c)+`<h2>📗 Diccionario de español</h2><p class="sub">${ESD.length.toLocaleString('es-PE')} palabras de uso actual, con sinónimos, antónimos y su traducción al inglés.</p>
+   <input id="qes" class="search" type="search" placeholder="Escribe una palabra en español…" autocomplete="off" autocapitalize="off" spellcheck="false">
+   <div class="row" style="margin:12px 0"><button class="btn alt small" data-a="esrand">🎲 Palabra al azar</button></div>
+   <div id="esres">${esResults(c)}</div><p class="ds" style="margin-top:16px">Fuentes: Wikcionario (CC BY-SA 4.0) y tesauro de sinónimos de LibreOffice. Selección por frecuencia de uso en el español actual.</p>`;};
+function esSearch(q){q=deacc(q.trim());if(!q)return [];const ex=[],pre=[],inn=[];
+  for(const e of ESD){const k=deacc(e[0]);if(k===q)ex.push(e);else if(k.startsWith(q))pre.push(e);else if(q.length>=4&&k.includes(q))inn.push(e);}
+  pre.sort((a,b)=>a[0].length-b[0].length);return ex.concat(pre,inn);}
+function esResults(c){const q=(c.qes||'').trim();
+  if(!q){const by={};ESD.forEach(e=>{const k=deacc(e[0])[0];by[k]=(by[k]||0)+1;});
+    return `<p class="ds">O toca una letra:</p><div class="row">${Object.keys(by).filter(k=>/[a-zñ]/.test(k)).sort().map(k=>`<button class="btn alt small" data-a="esletter" data-v="${k}">${k.toUpperCase()}</button>`).join('')}</div>`;}
+  const res=q.startsWith('^')?ESD.filter(e=>deacc(e[0]).startsWith(q.slice(1))):esSearch(q);c.esres=res;c.eslim=c.eslim||50;
+  if(!res.length)return `<p class="sub">No encontré «${esc(q)}».</p>`;
+  return res.slice(0,c.eslim).map((e,i)=>`<button class="dres" data-a="escard" data-w="${esc(e[0])}"><div style="flex:1"><div class="h">${esc(e[0])} <span class="badge">${esc(e[1][0][0])}</span></div>
+    <div class="s" style="color:var(--texto)">${esc(e[1][0][1])}</div>${e[4].length?`<div class="s">🇬🇧 ${esc(e[4].slice(0,3).join(', '))}</div>`:''}</div></button>`).join('')+(res.length>c.eslim?`<button class="btn alt more" data-a="esmore">Ver más (${res.length-c.eslim})</button>`:'');}
+function chipW(w,kind){const has=ESI&&ESI[w]!==undefined;return `<button class="badge" style="font-size:1rem;${has?'':'opacity:.65;cursor:default'};${kind==='ant'?'background:#fdeeee;color:var(--rojo)':''}" ${has?`data-a="escard" data-w="${esc(w)}"`:''}>${esc(w)}</button>`;}
+function esCardHtml(e,long){const [w,S,syn,ant,en]=e;
+  const sense=(s,i)=>`<div style="text-align:left;margin:6px 0"><b>${i+1}.</b> <span class="badge">${esc(s[0])}</span>${s[2]?` <i class="ds">(${esc(s[2])})</i>`:''} ${esc(s[1])}${s[3]?`<div class="ds" style="margin-left:18px">✏️ «${esc(s[3])}»</div>`:''}</div>`;
+  return `<button class="close" data-a="close">✕</button><div class="wcard">
+   <div class="w" style="font-family:inherit">${esc(w)}</div><button class="btn alt small" data-a="essay" data-w="${esc(w)}">🔊 Escuchar</button>
+   <div class="de" style="max-width:600px;width:100%">${sense(S[0],0)}
+    ${S.length>1?(long?S.slice(1).map((s,i)=>sense(s,i+1)).join(''):`<button class="btn alt small" data-a="eslong" data-w="${esc(w)}">// Ver ${S.length-1} significado${S.length>2?'s':''} más</button>`):''}</div>
+   ${syn.length?`<div style="width:100%;text-align:left"><b>🟢 Sinónimos</b><div class="row" style="margin-top:6px">${syn.map(x=>chipW(x,'syn')).join('')}</div></div>`:''}
+   ${ant.length?`<div style="width:100%;text-align:left"><b>🔴 Antónimos</b><div class="row" style="margin-top:6px">${ant.map(x=>chipW(x,'ant')).join('')}</div></div>`:''}
+   ${en.length?`<div style="width:100%;text-align:left"><b>🇬🇧 En inglés</b><div class="row" style="margin-top:6px">${en.map(x=>{const ew=ENW[x.toLowerCase()];
+      return `<button class="badge" style="font-size:1rem" data-a="${ew?'esen':'essayen'}" data-w="${esc(x)}">${ew&&ew.img?ew.img+' ':''}${esc(x)}${ew?' ›':' 🔊'}</button>`;}).join('')}</div></div>`:''}</div>`;}
+function openEs(w,long){const i=ESI[w];if(i===undefined)return;$('#sheet').innerHTML=esCardHtml(ESD[i],long);openModal();$('#sheet').scrollTop=0;}
+act3=function(a,d,el){const c=cur();
+ switch(a){
+  case 'dtab':c.tab=d.v;render();break;
+  case 'esletter':c.qes='^'+d.v;c.eslim=80;$('#qes').value='';$('#esres').innerHTML=esResults(c);break;
+  case 'esmore':c.eslim+=80;$('#esres').innerHTML=esResults(c);break;
+  case 'escard':openEs(d.w,false);break;
+  case 'eslong':openEs(d.w,true);break;
+  case 'essay':speakEs(d.w);break;
+  case 'essayen':speak(d.w);break;
+  case 'esen':{const ew=ENW[d.w.toLowerCase()];if(ew){CARD={list:[ew],i:0};P.heard[ew.en]=1;save();$('#sheet').innerHTML=cardHtml(ew,[ew],0);speak(ew.en);}break;}
+  case 'esrand':{const e=ESD[Math.floor(Math.random()*ESD.length)];openEs(e[0],false);break;}
+ }};
+const _render=render;
+render=function(){_render();const c=cur();if(c.s==='dict'&&c.tab==='es'&&ESD){const i=$('#qes');if(i){i.value=c.qes&&!c.qes.startsWith('^')?c.qes:'';
+  i.oninput=()=>{c.qes=i.value;c.eslim=50;$('#esres').innerHTML=esResults(c);};}}};
+
 /* ================= acciones ================= */
 function act(a,d,el){const c=cur();
  switch(a){
