@@ -187,7 +187,9 @@ function loadVoices(){if('speechSynthesis' in window)VOICES=speechSynthesis.getV
 if('speechSynthesis' in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
 const vlang=v=>(v.lang||'').replace('_','-').toLowerCase();
 function pickVoice(){const want=CFG.accent==='US'?'en-us':'en-gb';
-  return VOICES.find(v=>vlang(v)===want&&/google/i.test(v.name))||VOICES.find(v=>vlang(v)===want)||VOICES.find(v=>vlang(v).startsWith('en'))||null;}
+  if(CFG.voice){const cv=VOICES.find(v=>v.name===CFG.voice);if(cv)return cv;}
+  const nat=v=>/natural|online|neural|google|premium|enhanced|siri/i.test(v.name);
+  return VOICES.find(v=>vlang(v)===want&&nat(v))||VOICES.find(v=>vlang(v).startsWith('en')&&nat(v))||VOICES.find(v=>vlang(v)===want&&/google/i.test(v.name))||VOICES.find(v=>vlang(v)===want)||VOICES.find(v=>vlang(v).startsWith('en'))||null;}
 const clean=t=>String(t).replace(/[\[\]]/g,'').replace(/…/g,'');
 function utter(text,rate){const u=new SpeechSynthesisUtterance(clean(text));const v=pickVoice();if(v)u.voice=v;
   u.lang=CFG.accent==='US'?'en-US':'en-GB';u.rate=rate||CFG.rate;return u;}
@@ -476,7 +478,9 @@ function settingsV(){const v=pickVoice();const seg=(c,opts)=>`<div class="seg">$
   <div class="set"><div><b>Fonética IPA</b><div class="ds">Los símbolos /.../ de los diccionarios</div></div>${seg('ipa',[['true','Sí'],['false','No']])}</div>
   <div class="set"><div><b>Traducción en oraciones y cuentos</b></div>${seg('tr',[['true','Ver'],['false','Ocultar']])}</div>
   <div class="set"><div><b>Micrófono «Dilo tú»</b><div class="ds">${SR?'Necesita internet':'No disponible en este navegador'}</div></div>${SR?seg('mic',[['true','Sí'],['false','No']]):''}</div>
-  <div class="set"><div><b>Voz</b><div class="ds">${v?esc(v.name)+' ('+esc(v.lang)+')':'⚠️ No encuentro voz en inglés. En la tablet: Ajustes › Administración general › Texto a voz › motor de Google › instalar datos de voz en inglés.'}</div></div><button class="btn small" data-a="test">🔊 Probar</button></div>
+  <div class="set"><div style="flex:1;min-width:260px"><b>Voz</b><div class="ds">${v?'':'⚠️ No encuentro voz en inglés. En la tablet: Ajustes › Accesibilidad › Texto a voz › instalar datos de voz en inglés.'}</div>
+    <select id="vsel" class="search" style="font-size:1rem;padding:10px;margin-top:6px"><option value="">Automática (la mejor disponible)</option>${VOICES.filter(x=>/^en/i.test(x.lang)).sort((a,b)=>(/natural|online|neural|google/i.test(b.name)-/natural|online|neural|google/i.test(a.name))||a.lang.localeCompare(b.lang)).map(x=>`<option value="${esc(x.name)}" ${CFG.voice===x.name?'selected':''}>${/natural|online|neural|google/i.test(x.name)?'⭐ ':''}${esc(x.name)} (${esc(x.lang)})</option>`).join('')}</select>
+    <div class="ds">En uso: ${v?esc(v.name):'—'}. Las de ⭐ suenan más naturales (necesitan internet).</div></div><button class="btn small" data-a="test">🔊 Probar</button></div>
   <div class="set"><div><b>Borrar progreso</b><div class="ds">Estrellas, palabras y cuentos</div></div><button class="btn small alt" data-a="reset">Borrar</button></div>
   <p class="ds">Imágenes extra: OpenMoji (CC BY-SA 4.0). Letra cursiva: Playwrite US Trad (OFL). Pronunciación base: ipa-dict.</p>`;}
 function legendV(){const L=[['jáus','La sílaba con tilde se dice más fuerte'],['ii · uu · oo · aa','Vocal larga: estírala'],['ër','Vocal entre e y o, boca relajada; la r casi no suena'],
@@ -893,6 +897,7 @@ document.addEventListener('click',e=>{if(e.target.id==='modal'){history.back();r
   if(b.dataset.a==='tapw'){e.stopPropagation();act('tapw',b.dataset,b);return;}
   act(b.dataset.a,b.dataset,b);},true);
 // cerrar modal de ajustes: volver a pintar la pantalla para aplicar cambios
+document.addEventListener('change',e=>{if(e.target.id==='vsel'){CFG.voice=e.target.value;save();speak('Hello! This is my new voice.');$('#sheet').innerHTML=settingsV();}});
 try{history.replaceState({n:1},'')}catch(e){}
 applyFont();render();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('sw.js').catch(()=>{});}
